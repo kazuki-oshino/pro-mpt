@@ -57,6 +57,9 @@ final class OverlayPanelController {
         positionPanel()
         removeLocalKeyMonitor()
 
+        // IMEを動作させるためにアプリをアクティブ化
+        NSApp.activate(ignoringOtherApps: true)
+
         panel.alphaValue = 0
         panel.setFrame(panel.frame.offsetBy(dx: 0, dy: 8), display: false)
         panel.makeKeyAndOrderFront(nil)
@@ -167,11 +170,11 @@ final class OverlayPanelController {
             handleCopySelectedAndClose()
             return nil
 
-        case 125: // ↓
+        case 125 where appState.mode == .search: // ↓ (検索モードのみ)
             appState.selectNext()
             return nil
 
-        case 126: // ↑
+        case 126 where appState.mode == .search: // ↑ (検索モードのみ)
             appState.selectPrevious()
             return nil
 
@@ -227,8 +230,8 @@ final class OverlayPanelController {
 
     private func handleInsertSelected() {
         guard let result = selectedResult() else { return }
-        appState.promptText = result.content
         appState.exitSearchMode()
+        appState.insertAtCursor(result.content)
     }
 
     private func handleCopyPasteAndClose() {

@@ -5,7 +5,11 @@ import SwiftData
 
 struct OverlayContentView: View {
     @Bindable var appState: AppState
-    @FocusState private var isEditorFocused: Bool
+    @FocusState private var focusedField: FocusField?
+
+    enum FocusField {
+        case editor, search
+    }
 
     var body: some View {
         ZStack {
@@ -15,8 +19,10 @@ struct OverlayContentView: View {
                 modeBar
                 divider
                 editorArea
-                divider
-                historySection
+                if appState.mode == .search {
+                    divider
+                    historySection
+                }
                 divider
                 statusBar
             }
@@ -29,13 +35,13 @@ struct OverlayContentView: View {
         )
         .shadow(color: .black.opacity(0.4), radius: 30, x: 0, y: 10)
         .onAppear {
-            isEditorFocused = true
+            focusedField = .editor
         }
         .onChange(of: appState.searchQuery) { _, newValue in
             appState.searchEngine.search(query: newValue)
         }
-        .onChange(of: appState.mode) { _, _ in
-            isEditorFocused = true
+        .onChange(of: appState.mode) { _, newMode in
+            focusedField = newMode == .input ? .editor : .search
         }
     }
 
@@ -122,7 +128,7 @@ struct OverlayContentView: View {
                 .font(AppTypography.promptEditor)
                 .foregroundStyle(AppColors.textPrimary)
                 .scrollContentBackground(.hidden)
-                .focused($isEditorFocused)
+                .focused($focusedField, equals: .editor)
                 .frame(minHeight: AppLayout.inputMinHeight, maxHeight: AppLayout.inputMaxHeight)
                 .padding(.horizontal, AppLayout.paddingMedium)
                 .padding(.vertical, AppLayout.paddingSmall)
@@ -140,7 +146,7 @@ struct OverlayContentView: View {
                 .textFieldStyle(.plain)
                 .font(AppTypography.promptEditor)
                 .foregroundStyle(AppColors.textPrimary)
-                .focused($isEditorFocused)
+                .focused($focusedField, equals: .search)
         }
         .padding(.horizontal, AppLayout.paddingLarge)
         .padding(.vertical, AppLayout.paddingMedium)
@@ -198,8 +204,8 @@ struct OverlayContentView: View {
                 Text(appState.mode == .search ? "一致するプロンプトがありません" : "まだ履歴がありません")
                     .font(AppTypography.label)
                     .foregroundStyle(AppColors.textTertiary)
-                if appState.mode != .search {
-                    Text("プロンプトを入力して ⌘+Enter でコピーすると自動保存されます")
+                if appState.mode == .search {
+                    Text("キーワードを入力して検索してください")
                         .font(AppTypography.metadata)
                         .foregroundStyle(AppColors.textTertiary.opacity(0.6))
                 }
