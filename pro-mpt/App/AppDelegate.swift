@@ -9,10 +9,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var overlayController: OverlayPanelController?
     private var accessibilityManager: AccessibilityManager?
     private var onboardingWindow: NSWindow?
+    private var lastOverlayState = false
 
     let appState = AppState()
 
-    // SwiftData コンテナ
     lazy var modelContainer: ModelContainer = {
         let schema = Schema([Prompt.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
@@ -24,22 +24,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 検索エンジンにModelContainerを設定
         appState.searchEngine.configure(with: modelContainer)
 
-        // アクセシビリティ管理の初期化
         accessibilityManager = AccessibilityManager(appState: appState)
 
-        // オーバーレイパネルの初期化
         overlayController = OverlayPanelController(
             appState: appState,
             modelContainer: modelContainer
         )
 
-        // ホットキー管理の初期化
         hotkeyManager = HotkeyManager(appState: appState)
 
-        // アクセシビリティ権限を確認
         if accessibilityManager?.checkAccessibility() == true {
             appState.isAccessibilityGranted = true
             hotkeyManager?.start()
@@ -47,28 +42,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showAccessibilityOnboarding()
         }
 
-        // オーバーレイ表示状態の監視
-        observeOverlayState()
+        startOverlayObservation()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         hotkeyManager?.stop()
     }
 
-    // MARK: - オーバーレイ状態監視
+    // MARK: - オーバーレイ状態監視 (ポーリング方式で安全に)
 
-    private func observeOverlayState() {
-        withObservationTracking {
-            _ = appState.isOverlayVisible
-        } onChange: { [weak self] in
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                if self.appState.isOverlayVisible {
+    private func startOverlayObservation() {
+        // withObservationTrackingの再帰パターンは不安定なため、
+        // 軽量タイマーで状態変化を検出する
+        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            let current = self.appState.isOverlayVisible
+            if current != self.lastOverlayState {
+                self.lastOverlayState = current
+                if current {
                     self.overlayController?.show()
                 } else {
                     self.overlayController?.hide()
                 }
-                self.observeOverlayState()
             }
         }
     }
@@ -80,8 +75,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.appState.isAccessibilityGranted = true
             self.hotkeyManager?.start()
-            self.onboardingWindow?.close()
-            self.onboardingWindow = nil
+            // SwiftUIの再描画を完了させてからウィンドウを閉じる
+            DispatchQueue.main.async { [weak self] in
+                self?.onboardingWindow?.close()
+                self?.onboardingWindow = nil
+            }
         }
 
         let window = NSWindow(
@@ -95,8 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = NSHostingView(
             rootView: AccessibilityOnboardingView(
                 appState: appState,
-                onGranted: { [weak window] in
-                    window?.close()
+                onGranted: { [weak self] in
+                    self?.onboardingWindow?.close()
+                    self?.onboardingWindow = nil
                 }
             )
         )
