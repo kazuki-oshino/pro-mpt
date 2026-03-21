@@ -10,6 +10,7 @@ final class OverlayPanelController {
     private lazy var modelContext = ModelContext(modelContainer)
     private var panel: NSPanel?
     private var localMonitor: Any?
+    private var previousApp: NSRunningApplication?
 
     init(appState: AppState, modelContainer: ModelContainer) {
         self.appState = appState
@@ -53,6 +54,9 @@ final class OverlayPanelController {
 
     func show() {
         guard let panel else { return }
+
+        // オーバーレイ表示前に前のアプリを記録
+        previousApp = NSWorkspace.shared.frontmostApplication
 
         positionPanel()
         removeLocalKeyMonitor()
@@ -254,13 +258,24 @@ final class OverlayPanelController {
         ClipboardManager.copy(text)
         saveOrUpdatePrompt(content: text)
 
-        appState.showCopiedFeedback()
-        DispatchQueue.main.asyncAfter(deadline: .now() + AppLayout.feedbackDuration) { [weak self] in
-            self?.appState.promptText = ""
-            self?.appState.isOverlayVisible = false
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                self?.simulatePaste()
-            }
+        appState.promptText = ""
+        // パネルを即座に閉じる（ペースト自体がフィードバックなので待たない）
+        panel?.animationBehavior = .none
+        panel?.orderOut(nil)
+        panel?.animationBehavior = .utilityWindow
+        appState.isOverlayVisible = false
+        activatePreviousApp()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.simulatePaste()
+        }
+    }
+
+    /// 前のアプリにフォーカスを戻す
+    private func activatePreviousApp() {
+        if let app = previousApp {
+            app.activate()
+        } else {
+            NSApp.hide(nil)
         }
     }
 
