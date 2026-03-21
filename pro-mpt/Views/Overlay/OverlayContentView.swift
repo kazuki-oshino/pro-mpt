@@ -11,6 +11,11 @@ struct OverlayContentView: View {
         case editor, search
     }
 
+    /// 検索/お気に入りモードかどうか
+    private var isListMode: Bool {
+        appState.mode == .search || appState.mode == .favorite
+    }
+
     var body: some View {
         ZStack {
             backgroundLayer
@@ -19,7 +24,7 @@ struct OverlayContentView: View {
                 modeBar
                 divider
                 editorArea
-                if appState.mode == .search {
+                if isListMode {
                     divider
                     historySection
                 }
@@ -59,10 +64,17 @@ struct OverlayContentView: View {
     private var modeBar: some View {
         HStack(spacing: AppLayout.paddingSmall) {
             modeButton(title: "入力", icon: "pencil", isActive: appState.mode == .input) {
-                appState.exitSearchMode()
+                if appState.mode == .search {
+                    appState.exitSearchMode()
+                } else if appState.mode == .favorite {
+                    appState.exitFavoriteMode()
+                }
             }
             modeButton(title: "検索", icon: "magnifyingglass", shortcut: "⌘K", isActive: appState.mode == .search) {
                 appState.enterSearchMode()
+            }
+            modeButton(title: "お気に入り", icon: "star", shortcut: "⌘O", isActive: appState.mode == .favorite) {
+                appState.enterFavoriteMode()
             }
 
             Spacer()
@@ -105,7 +117,7 @@ struct OverlayContentView: View {
 
     private var editorArea: some View {
         Group {
-            if appState.mode == .search {
+            if isListMode {
                 searchField
             } else {
                 promptEditor
@@ -138,11 +150,11 @@ struct OverlayContentView: View {
 
     private var searchField: some View {
         HStack(spacing: AppLayout.paddingSmall) {
-            Image(systemName: "magnifyingglass")
+            Image(systemName: appState.mode == .favorite ? "star" : "magnifyingglass")
                 .foregroundStyle(AppColors.accent)
                 .font(.system(size: 14))
 
-            TextField("検索...", text: $appState.searchQuery)
+            TextField(appState.mode == .favorite ? "お気に入りを検索..." : "検索...", text: $appState.searchQuery)
                 .textFieldStyle(.plain)
                 .font(AppTypography.promptEditor)
                 .foregroundStyle(AppColors.textPrimary)
@@ -165,7 +177,7 @@ struct OverlayContentView: View {
 
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(appState.mode == .search && !appState.searchQuery.isEmpty ? "検索結果" : "最近の履歴")
+                Text(sectionTitle)
                     .font(AppTypography.sectionHeader)
                     .foregroundStyle(AppColors.textTertiary)
                     .textCase(.uppercase)
@@ -182,7 +194,7 @@ struct OverlayContentView: View {
                     PromptRowView(
                         result: result,
                         isSelected: appState.selectedHistoryIndex == index,
-                        searchQuery: appState.mode == .search ? appState.searchQuery : ""
+                        searchQuery: isListMode ? appState.searchQuery : ""
                     )
                     .contentShape(Rectangle())
                     // ダブルクリックを先に判定
@@ -199,18 +211,25 @@ struct OverlayContentView: View {
         .frame(minHeight: 60)
     }
 
+    private var sectionTitle: String {
+        if appState.mode == .favorite {
+            return appState.searchQuery.isEmpty ? "お気に入り" : "検索結果"
+        }
+        return appState.searchQuery.isEmpty ? "最近の履歴" : "検索結果"
+    }
+
     private var emptyState: some View {
         HStack {
             Spacer()
             VStack(spacing: 6) {
-                Image(systemName: appState.mode == .search ? "magnifyingglass" : "text.bubble")
+                Image(systemName: emptyStateIcon)
                     .font(.system(size: 24))
                     .foregroundStyle(AppColors.textTertiary.opacity(0.5))
-                Text(appState.mode == .search ? "一致するプロンプトがありません" : "まだ履歴がありません")
+                Text(emptyStateMessage)
                     .font(AppTypography.label)
                     .foregroundStyle(AppColors.textTertiary)
-                if appState.mode == .search {
-                    Text("キーワードを入力して検索してください")
+                if isListMode && !appState.searchQuery.isEmpty {
+                    Text("キーワードを変えて検索してください")
                         .font(AppTypography.metadata)
                         .foregroundStyle(AppColors.textTertiary.opacity(0.6))
                 }
@@ -218,6 +237,22 @@ struct OverlayContentView: View {
             .padding(.vertical, 20)
             Spacer()
         }
+    }
+
+    private var emptyStateIcon: String {
+        if appState.mode == .favorite { return "star" }
+        if appState.mode == .search { return "magnifyingglass" }
+        return "text.bubble"
+    }
+
+    private var emptyStateMessage: String {
+        if appState.mode == .favorite {
+            return appState.searchQuery.isEmpty ? "お気に入りがありません" : "一致するお気に入りがありません"
+        }
+        if appState.mode == .search {
+            return appState.searchQuery.isEmpty ? "まだ履歴がありません" : "一致するプロンプトがありません"
+        }
+        return "まだ履歴がありません"
     }
 
     // MARK: - ステータスバー
@@ -245,6 +280,7 @@ struct OverlayContentView: View {
                 ShortcutHintView(key: "F17", action: "コピーして閉じる")
                 ShortcutHintView(key: "⇧F17", action: "ペースト")
                 ShortcutHintView(key: "⌘K", action: "検索")
+                ShortcutHintView(key: "⌘O", action: "お気に入り")
                 ShortcutHintView(key: "esc", action: "閉じる")
             }
 

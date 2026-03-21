@@ -8,8 +8,12 @@ final class SearchEngine {
     private let ftsDatabase: FTSDatabase
     private var modelContainer: ModelContainer?
 
+    /// 現在の検索対象キャッシュ（モードにより切り替わる）
     private(set) var cachedPrompts: [FTSSearchResult] = []
     private(set) var searchResults: [FTSSearchResult] = []
+
+    /// お気に入りモードかどうか
+    private var isFavoriteMode = false
 
     private let debouncer = Debouncer(delay: 0.05)
 
@@ -39,16 +43,33 @@ final class SearchEngine {
         }
 
         // インメモリ部分一致検索（中間一致対応）
-        searchResults = cachedPrompts.filter { result in
+        var filtered = cachedPrompts.filter { result in
             result.content.localizedCaseInsensitiveContains(trimmed) ||
             result.title.localizedCaseInsensitiveContains(trimmed)
         }
+
+        // 検索モード時はお気に入りを優先表示
+        if !isFavoriteMode {
+            filtered.sort { a, b in
+                if a.isFavorite != b.isFavorite { return a.isFavorite }
+                return a.lastUsedAt > b.lastUsedAt
+            }
+        }
+
+        searchResults = filtered
     }
 
     // MARK: - キャッシュ
 
     func refreshCache() {
+        isFavoriteMode = false
         cachedPrompts = ftsDatabase.fetchRecent(limit: 10000)
+        searchResults = cachedPrompts
+    }
+
+    func refreshFavorites() {
+        isFavoriteMode = true
+        cachedPrompts = ftsDatabase.fetchFavorites()
         searchResults = cachedPrompts
     }
 
@@ -96,11 +117,19 @@ final class SearchEngine {
             isFavorite: prompt.isFavorite,
             characterCount: prompt.content.count
         )
-        refreshCache()
+        if isFavoriteMode {
+            refreshFavorites()
+        } else {
+            refreshCache()
+        }
     }
 
     func removeFromIndex(id: String) {
         ftsDatabase.deletePrompt(id: id)
-        refreshCache()
+        if isFavoriteMode {
+            refreshFavorites()
+        } else {
+            refreshCache()
+        }
     }
 }

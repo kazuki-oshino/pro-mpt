@@ -21,6 +21,7 @@ final class AppState {
     enum InputMode {
         case input
         case search
+        case favorite
     }
 
     var visibleItemCount: Int {
@@ -45,6 +46,7 @@ final class AppState {
         mode = .search
         searchQuery = ""
         selectedHistoryIndex = -1
+        searchEngine.refreshCache()
     }
 
     func exitSearchMode() {
@@ -52,6 +54,22 @@ final class AppState {
         searchQuery = ""
         selectedHistoryIndex = -1
         // TextEditorが再表示された後にカーソルを復元
+        TextViewHelper.setCursorOffset(savedCursorOffset)
+    }
+
+    func enterFavoriteMode() {
+        savedCursorOffset = TextViewHelper.currentCursorOffset()
+            ?? (promptText as NSString).length
+        mode = .favorite
+        searchQuery = ""
+        selectedHistoryIndex = -1
+        searchEngine.refreshFavorites()
+    }
+
+    func exitFavoriteMode() {
+        mode = .input
+        searchQuery = ""
+        selectedHistoryIndex = -1
         TextViewHelper.setCursorOffset(savedCursorOffset)
     }
 

@@ -139,6 +139,8 @@ final class OverlayPanelController {
         case 53: // Escape
             if appState.mode == .search {
                 appState.exitSearchMode()
+            } else if appState.mode == .favorite {
+                appState.exitFavoriteMode()
             } else {
                 appState.isOverlayVisible = false
             }
@@ -149,6 +151,14 @@ final class OverlayPanelController {
                 appState.exitSearchMode()
             } else {
                 appState.enterSearchMode()
+            }
+            return nil
+
+        case 31 where hasCmd: // ⌘+O
+            if appState.mode == .favorite {
+                appState.exitFavoriteMode()
+            } else {
+                appState.enterFavoriteMode()
             }
             return nil
 
@@ -170,11 +180,11 @@ final class OverlayPanelController {
             handleCopySelectedAndClose()
             return nil
 
-        case 125 where appState.mode == .search: // ↓ (検索モードのみ)
+        case 125 where appState.mode == .search || appState.mode == .favorite: // ↓ (リストモード)
             appState.selectNext()
             return nil
 
-        case 126 where appState.mode == .search: // ↑ (検索モードのみ)
+        case 126 where appState.mode == .search || appState.mode == .favorite: // ↑ (リストモード)
             appState.selectPrevious()
             return nil
 
