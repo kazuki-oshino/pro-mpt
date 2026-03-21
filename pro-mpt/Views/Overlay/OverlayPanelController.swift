@@ -72,7 +72,7 @@ final class OverlayPanelController {
     }
 
     func hide() {
-        guard let panel else { return }
+        guard let panel, panel.isVisible else { return }
 
         removeLocalKeyMonitor()
 
@@ -84,9 +84,9 @@ final class OverlayPanelController {
             panel?.orderOut(nil)
         })
 
-        if appState.isOverlayVisible {
-            appState.isOverlayVisible = false
-        }
+        // AppDelegateのタイマーが状態変化を検出してhide()を呼ぶので、
+        // ここでは直接状態を同期するだけ (再入しない)
+        appState.isOverlayVisible = false
     }
 
     // MARK: - マルチモニター対応
@@ -149,12 +149,12 @@ final class OverlayPanelController {
             }
             return nil
 
-        case 36 where hasCmd && hasShift: // ⌘+Shift+Enter
-            handleCopyPasteAndClose()
+        case 64: // F17 → コピーして閉じる
+            handleCopyAndClose()
             return nil
 
-        case 36 where hasCmd: // ⌘+Enter
-            handleCopyAndClose()
+        case 64 where hasShift: // Shift+F17 → コピーして前のアプリにペースト
+            handleCopyPasteAndClose()
             return nil
 
         // Shift+Enter (アイテム選択中): 入力欄に挿入 — Enter より先に判定
