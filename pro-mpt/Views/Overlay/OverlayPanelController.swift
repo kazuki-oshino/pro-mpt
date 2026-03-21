@@ -169,12 +169,7 @@ final class OverlayPanelController {
             }
             return nil
 
-        case 64: // F17 → コピーして前のアプリにペースト
-            handleCopyPasteAndClose()
-            return nil
-
-        // ⌘+Enter: コピーして閉じる（入力欄テキスト or 選択アイテム）
-        case 36 where hasCmd:
+        case 64: // F17 → コピーして閉じる
             if appState.selectedHistoryIndex >= 0 {
                 handleCopySelectedAndClose()
             } else {
@@ -182,9 +177,9 @@ final class OverlayPanelController {
             }
             return nil
 
-        // Shift+Enter (アイテム選択中): コピーして閉じる — Enter より先に判定
-        case 36 where hasShift && appState.selectedHistoryIndex >= 0:
-            handleCopySelectedAndClose()
+        // Shift+Enter: コピーして前のアプリにペースト
+        case 36 where hasShift:
+            handleCopyPasteAndClose()
             return nil
 
         // Enter (アイテム選択中): 入力欄に挿入
