@@ -272,12 +272,12 @@ struct OverlayContentView: View {
                     removal: .opacity
                 ))
             } else if appState.selectedHistoryIndex >= 0 {
-                ShortcutHintView(key: "↩", action: "コピー")
-                ShortcutHintView(key: "⇧↩", action: "入力欄に挿入")
+                ShortcutHintView(key: "↩", action: "入力欄に挿入")
+                ShortcutHintView(key: "⌘↩", action: "コピーして閉じる")
                 ShortcutHintView(key: "⌘F", action: "お気に入り")
                 ShortcutHintView(key: "⌘⌫", action: "削除")
             } else {
-                ShortcutHintView(key: "F17", action: "コピーして閉じる")
+                ShortcutHintView(key: "⌘↩", action: "コピーして閉じる")
                 ShortcutHintView(key: "⇧F17", action: "ペースト")
                 ShortcutHintView(key: "⌘K", action: "検索")
                 ShortcutHintView(key: "⌘O", action: "お気に入り")
