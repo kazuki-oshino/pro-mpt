@@ -147,6 +147,11 @@ struct OverlayContentView: View {
                 .font(AppTypography.promptEditor)
                 .foregroundStyle(AppColors.textPrimary)
                 .focused($focusedField, equals: .search)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        focusedField = .search
+                    }
+                }
         }
         .padding(.horizontal, AppLayout.paddingLarge)
         .padding(.vertical, AppLayout.paddingMedium)
