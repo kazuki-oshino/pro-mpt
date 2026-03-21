@@ -216,9 +216,12 @@ final class FTSDatabase: @unchecked Sendable {
 
     func fetchRecent(limit: Int = 20) -> [FTSSearchResult] {
         return queue.sync {
+            // お気に入りは全件含め、残りを直近順で埋める
             let sql = """
                 SELECT id, content, title, last_used_at, use_count, is_favorite, character_count
-                FROM prompts ORDER BY last_used_at DESC LIMIT ?
+                FROM prompts
+                ORDER BY is_favorite DESC, last_used_at DESC
+                LIMIT ?
             """
             var stmt: OpaquePointer?
             guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return [] }
