@@ -170,14 +170,14 @@ final class OverlayPanelController {
             handleCopyPasteAndClose()
             return nil
 
-        // Shift+Enter (アイテム選択中): 入力欄に挿入 — Enter より先に判定
+        // Shift+Enter (アイテム選択中): コピーして閉じる — Enter より先に判定
         case 36 where hasShift && appState.selectedHistoryIndex >= 0:
-            handleInsertSelected()
+            handleCopySelectedAndClose()
             return nil
 
-        // Enter (アイテム選択中): コピーして閉じる
+        // Enter (アイテム選択中): 入力欄に挿入
         case 36 where appState.selectedHistoryIndex >= 0:
-            handleCopySelectedAndClose()
+            handleInsertSelected()
             return nil
 
         case 125 where appState.mode == .search || appState.mode == .favorite: // ↓ (リストモード)
