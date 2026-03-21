@@ -48,6 +48,13 @@ struct OverlayContentView: View {
         .onChange(of: appState.mode) { _, newMode in
             focusedField = newMode == .input ? .editor : .search
         }
+        .onChange(of: appState.isOverlayVisible) { _, visible in
+            if visible {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    focusedField = .editor
+                }
+            }
+        }
     }
 
     // MARK: - 背景
