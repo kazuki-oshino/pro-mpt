@@ -278,7 +278,7 @@ struct OverlayContentView: View {
                 ShortcutHintView(key: "⌘⌫", action: "削除")
             } else {
                 ShortcutHintView(key: "⌘↩", action: "コピーして閉じる")
-                ShortcutHintView(key: "⇧F17", action: "ペースト")
+                ShortcutHintView(key: "F17", action: "ペースト")
                 ShortcutHintView(key: "⌘K", action: "検索")
                 ShortcutHintView(key: "⌘O", action: "お気に入り")
                 ShortcutHintView(key: "esc", action: "閉じる")

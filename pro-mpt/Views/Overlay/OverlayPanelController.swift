@@ -162,7 +162,7 @@ final class OverlayPanelController {
             }
             return nil
 
-        case 64 where hasShift: // Shift+F17 → コピーして前のアプリにペースト
+        case 64: // F17 → コピーして前のアプリにペースト
             handleCopyPasteAndClose()
             return nil
 
