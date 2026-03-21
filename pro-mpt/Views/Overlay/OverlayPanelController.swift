@@ -91,6 +91,9 @@ final class OverlayPanelController {
             panel?.orderOut(nil)
         })
 
+        // 前のアプリにフォーカスを戻す
+        activatePreviousApp()
+
         // AppDelegateのタイマーが状態変化を検出してhide()を呼ぶので、
         // ここでは直接状態を同期するだけ (再入しない)
         appState.isOverlayVisible = false
