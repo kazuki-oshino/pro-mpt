@@ -38,21 +38,17 @@ final class SearchEngine {
             return
         }
 
-        // 短いクエリ(1-2文字)はインメモリ、それ以外はFTS5のみ
-        if trimmed.count <= 2 {
-            searchResults = cachedPrompts.filter { result in
-                result.content.localizedCaseInsensitiveContains(trimmed) ||
-                result.title.localizedCaseInsensitiveContains(trimmed)
-            }
-        } else {
-            searchResults = ftsDatabase.search(query: trimmed)
+        // インメモリ部分一致検索（中間一致対応）
+        searchResults = cachedPrompts.filter { result in
+            result.content.localizedCaseInsensitiveContains(trimmed) ||
+            result.title.localizedCaseInsensitiveContains(trimmed)
         }
     }
 
     // MARK: - キャッシュ
 
     func refreshCache() {
-        cachedPrompts = ftsDatabase.fetchRecent(limit: 50)
+        cachedPrompts = ftsDatabase.fetchRecent(limit: 10000)
         searchResults = cachedPrompts
     }
 
