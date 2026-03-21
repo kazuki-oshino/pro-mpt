@@ -15,6 +15,9 @@ final class AppState {
 
     let searchEngine = SearchEngine()
 
+    /// 検索モードに入る前のカーソル位置 (UTF-16オフセット)
+    private var savedCursorOffset: Int = 0
+
     enum InputMode {
         case input
         case search
@@ -36,6 +39,9 @@ final class AppState {
     }
 
     func enterSearchMode() {
+        // NSTextViewから直接カーソル位置を取得
+        savedCursorOffset = TextViewHelper.currentCursorOffset()
+            ?? (promptText as NSString).length
         mode = .search
         searchQuery = ""
         selectedHistoryIndex = -1
@@ -45,10 +51,27 @@ final class AppState {
         mode = .input
         searchQuery = ""
         selectedHistoryIndex = -1
+        // TextEditorが再表示された後にカーソルを復元
+        TextViewHelper.setCursorOffset(savedCursorOffset)
     }
 
     func clearInput() {
         promptText = ""
+    }
+
+    // MARK: - カーソル位置でのテキスト挿入
+
+    func insertAtCursor(_ insertText: String) {
+        let nsText = promptText as NSString
+        let safeOffset = min(savedCursorOffset, nsText.length)
+        let result = nsText.replacingCharacters(
+            in: NSRange(location: safeOffset, length: 0),
+            with: insertText
+        )
+        promptText = result
+        // 挿入テキストの末尾にカーソルを移動
+        let newOffset = safeOffset + (insertText as NSString).length
+        TextViewHelper.setCursorOffset(newOffset)
     }
 
     // MARK: - キーボードナビゲーション
