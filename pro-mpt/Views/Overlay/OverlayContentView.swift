@@ -133,26 +133,15 @@ struct OverlayContentView: View {
     }
 
     private var promptEditor: some View {
-        ZStack(alignment: .topLeading) {
-            if appState.promptText.isEmpty {
-                Text("プロンプトを入力...")
-                    .font(AppTypography.promptEditor)
-                    .foregroundStyle(AppColors.textTertiary)
-                    .padding(.horizontal, AppLayout.paddingLarge + 5)
-                    .padding(.vertical, AppLayout.paddingMedium + 2)
-                    .allowsHitTesting(false)
-            }
-
-            TextEditor(text: $appState.promptText)
-                .font(AppTypography.promptEditor)
-                .foregroundStyle(AppColors.textPrimary)
-                .scrollContentBackground(.hidden)
-                .focused($focusedField, equals: .editor)
-                .frame(minHeight: AppLayout.inputMinHeight, maxHeight: AppLayout.inputMaxHeight)
-                .padding(.horizontal, AppLayout.paddingMedium)
-                .padding(.vertical, AppLayout.paddingSmall)
-        }
-        .background(AppColors.bgBase)
+        TextEditor(text: $appState.promptText)
+            .font(AppTypography.promptEditor)
+            .foregroundStyle(AppColors.textPrimary)
+            .scrollContentBackground(.hidden)
+            .focused($focusedField, equals: .editor)
+            .frame(minHeight: AppLayout.inputMinHeight, maxHeight: AppLayout.inputMaxHeight)
+            .padding(.horizontal, AppLayout.paddingMedium)
+            .padding(.vertical, AppLayout.paddingSmall)
+            .background(AppColors.bgBase)
     }
 
     private var searchField: some View {

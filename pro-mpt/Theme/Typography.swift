@@ -42,7 +42,7 @@ enum AppLayout {
     static let paddingLarge: CGFloat = 16
 
     // 入力エリア
-    static let inputMinHeight: CGFloat = 72
+    static let inputMinHeight: CGFloat = 100
     static let inputMaxHeight: CGFloat = 288  // 12行相当
 
     // 履歴リスト
