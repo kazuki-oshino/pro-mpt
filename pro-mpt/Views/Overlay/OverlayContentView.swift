@@ -62,7 +62,10 @@ struct OverlayContentView: View {
     private var backgroundLayer: some View {
         ZStack {
             VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-            AppColors.overlayBackground
+                .opacity(isListMode ? 1.0 : 0.45)
+            if isListMode {
+                AppColors.overlayBackground
+            }
         }
     }
 
@@ -134,14 +137,15 @@ struct OverlayContentView: View {
 
     private var promptEditor: some View {
         TextEditor(text: $appState.promptText)
+            .textEditorStyle(.plain)
             .font(AppTypography.promptEditor)
             .foregroundStyle(AppColors.textPrimary)
             .scrollContentBackground(.hidden)
+            .focusEffectDisabled()
             .focused($focusedField, equals: .editor)
             .frame(minHeight: AppLayout.inputMinHeight, maxHeight: AppLayout.inputMaxHeight)
             .padding(.horizontal, AppLayout.paddingMedium)
             .padding(.vertical, AppLayout.paddingSmall)
-            .background(AppColors.bgBase)
     }
 
     private var searchField: some View {

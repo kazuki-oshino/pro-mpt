@@ -23,15 +23,13 @@ final class OverlayPanelController {
     private func setupPanel() {
         let panel = OverlayPanel(
             contentRect: NSRect(x: 0, y: 0, width: AppLayout.panelWidth, height: 420),
-            styleMask: [.nonactivatingPanel, .titled, .fullSizeContentView],
+            styleMask: [.nonactivatingPanel],
             backing: .buffered,
             defer: true
         )
 
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
         panel.isMovableByWindowBackground = false
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -115,7 +113,7 @@ final class OverlayPanelController {
         let panelSize = panel.frame.size
 
         let x = screenFrame.origin.x + (screenFrame.width - panelSize.width) / 2
-        let y = screenFrame.origin.y + screenFrame.height * 0.75 - panelSize.height / 2
+        let y = screenFrame.origin.y + (screenFrame.height - panelSize.height) / 2
 
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
