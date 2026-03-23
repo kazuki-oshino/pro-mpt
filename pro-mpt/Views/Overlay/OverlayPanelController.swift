@@ -137,7 +137,6 @@ final class OverlayPanelController {
     private func handleKeyEvent(_ event: NSEvent) -> NSEvent? {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let hasCmd = flags.contains(.command)
-        let hasShift = flags.contains(.shift)
 
         switch event.keyCode {
 
@@ -175,8 +174,8 @@ final class OverlayPanelController {
             }
             return nil
 
-        // Shift+Enter: コピーして前のアプリにペースト
-        case 36 where hasShift:
+        // Command+Enter: コピーして前のアプリにペースト
+        case 36 where hasCmd:
             handleCopyPasteAndClose()
             return nil
 
