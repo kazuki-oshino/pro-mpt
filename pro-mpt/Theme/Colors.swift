@@ -28,7 +28,7 @@ enum AppColors {
     static let error = Color(hex: 0xEF4444)
     static let favorite = Color(hex: 0xF59E0B)
 
-    static let overlayBackground = Color(hex: 0x020203).opacity(0.75)
+    static let overlayBackground = Color(hex: 0x020203).opacity(0.88)
 }
 
 // MARK: - Hex カラー拡張
