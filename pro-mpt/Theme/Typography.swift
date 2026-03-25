@@ -47,6 +47,7 @@ enum AppLayout {
 
     // 履歴リスト
     static let maxVisibleHistoryItems = 8
+    static let maxVisibleTodoItems = 30
     static let historyItemHeight: CGFloat = 44
 
     // アニメーション

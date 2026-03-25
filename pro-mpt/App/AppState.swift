@@ -15,6 +15,12 @@ final class AppState {
 
     let searchEngine = SearchEngine()
 
+    // MARK: - TODO関連
+    var todoItems: [TodoItem] = []
+    var todoInputText = ""
+    var editingTodoId: UUID?
+    var selectedTodoIndex = -1
+
     /// 検索モードに入る前のカーソル位置 (UTF-16オフセット)
     private var savedCursorOffset: Int = 0
 
@@ -22,6 +28,7 @@ final class AppState {
         case input
         case search
         case favorite
+        case todo
     }
 
     var visibleItemCount: Int {
@@ -35,6 +42,9 @@ final class AppState {
         if isOverlayVisible {
             mode = .input
             selectedHistoryIndex = -1
+            selectedTodoIndex = -1
+            todoInputText = ""
+            editingTodoId = nil
             searchEngine.refreshCache()
         }
     }
@@ -71,6 +81,47 @@ final class AppState {
         searchQuery = ""
         selectedHistoryIndex = -1
         TextViewHelper.setCursorOffset(savedCursorOffset)
+    }
+
+    // MARK: - TODOモード
+
+    func enterTodoMode() {
+        savedCursorOffset = TextViewHelper.currentCursorOffset()
+            ?? (promptText as NSString).length
+        mode = .todo
+        todoInputText = ""
+        editingTodoId = nil
+        selectedTodoIndex = -1
+        refreshTodos()
+    }
+
+    func exitTodoMode() {
+        mode = .input
+        editingTodoId = nil
+        selectedTodoIndex = -1
+        TextViewHelper.setCursorOffset(savedCursorOffset)
+    }
+
+    func refreshTodos() {
+        let path = UserDefaults.standard.string(forKey: "todoFilePath") ?? ""
+        let service = TodoService(filePath: path)
+        todoItems = service.fetchIncompleteTodos()
+    }
+
+    var todoVisibleItemCount: Int {
+        min(todoItems.count, AppLayout.maxVisibleTodoItems)
+    }
+
+    func selectNextTodo() {
+        if selectedTodoIndex < todoVisibleItemCount - 1 {
+            selectedTodoIndex += 1
+        }
+    }
+
+    func selectPreviousTodo() {
+        if selectedTodoIndex > -1 {
+            selectedTodoIndex -= 1
+        }
     }
 
     func clearInput() {

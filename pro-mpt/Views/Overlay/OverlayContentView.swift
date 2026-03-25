@@ -11,9 +11,9 @@ struct OverlayContentView: View {
         case editor, search
     }
 
-    /// 検索/お気に入りモードかどうか
+    /// 検索/お気に入り/TODOモードかどうか
     private var isListMode: Bool {
-        appState.mode == .search || appState.mode == .favorite
+        appState.mode == .search || appState.mode == .favorite || appState.mode == .todo
     }
 
     var body: some View {
@@ -26,7 +26,11 @@ struct OverlayContentView: View {
                 editorArea
                 if isListMode {
                     divider
-                    historySection
+                    if appState.mode == .todo {
+                        todoSection
+                    } else {
+                        historySection
+                    }
                 }
                 divider
                 statusBar
@@ -78,6 +82,8 @@ struct OverlayContentView: View {
                     appState.exitSearchMode()
                 } else if appState.mode == .favorite {
                     appState.exitFavoriteMode()
+                } else if appState.mode == .todo {
+                    appState.exitTodoMode()
                 }
             }
             modeButton(title: "検索", icon: "magnifyingglass", shortcut: "⌘K", isActive: appState.mode == .search) {
@@ -86,6 +92,9 @@ struct OverlayContentView: View {
             modeButton(title: "お気に入り", icon: "star", shortcut: "⌘O", isActive: appState.mode == .favorite) {
                 appState.enterFavoriteMode()
             }
+            modeButton(title: "TODO", icon: "checklist", shortcut: "⌘T", isActive: appState.mode == .todo) {
+                appState.enterTodoMode()
+            }
 
             Spacer()
 
@@ -93,6 +102,8 @@ struct OverlayContentView: View {
                 Text("\(appState.promptText.count)文字")
                     .font(AppTypography.metadata)
                     .foregroundStyle(AppColors.textTertiary)
+            } else if appState.mode == .todo {
+                ResultCountLabel(count: appState.todoItems.count)
             } else {
                 ResultCountLabel(count: appState.searchEngine.searchResults.count)
             }
@@ -127,7 +138,9 @@ struct OverlayContentView: View {
 
     private var editorArea: some View {
         Group {
-            if isListMode {
+            if appState.mode == .todo {
+                todoInputField
+            } else if isListMode {
                 searchField
             } else {
                 promptEditor
@@ -168,6 +181,103 @@ struct OverlayContentView: View {
         .padding(.horizontal, AppLayout.paddingLarge)
         .padding(.vertical, AppLayout.paddingMedium)
         .background(AppColors.bgBase)
+    }
+
+    // MARK: - TODO入力フィールド
+
+    private var todoInputField: some View {
+        HStack(spacing: AppLayout.paddingSmall) {
+            Image(systemName: appState.editingTodoId != nil ? "pencil" : "plus.circle")
+                .foregroundStyle(AppColors.accent)
+                .font(.system(size: 14))
+
+            TextField(
+                appState.editingTodoId != nil ? "TODOを編集..." : "新しいTODOを追加...",
+                text: $appState.todoInputText
+            )
+            .textFieldStyle(.plain)
+            .font(AppTypography.promptEditor)
+            .foregroundStyle(AppColors.textPrimary)
+            .focused($focusedField, equals: .search)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    focusedField = .search
+                }
+            }
+        }
+        .padding(.horizontal, AppLayout.paddingLarge)
+        .padding(.vertical, AppLayout.paddingMedium)
+        .background(AppColors.bgBase)
+    }
+
+    // MARK: - TODOセクション
+
+    private var todoSection: some View {
+        let todoFilePath = UserDefaults.standard.string(forKey: "todoFilePath") ?? ""
+
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("未完了TODO")
+                    .font(AppTypography.sectionHeader)
+                    .foregroundStyle(AppColors.textTertiary)
+                    .textCase(.uppercase)
+                Spacer()
+            }
+            .padding(.horizontal, AppLayout.paddingLarge)
+            .padding(.vertical, AppLayout.paddingSmall)
+
+            if todoFilePath.isEmpty {
+                todoEmptyState(
+                    icon: "folder.badge.questionmark",
+                    message: "設定画面でTODOファイルを指定してください"
+                )
+            } else if appState.todoItems.isEmpty {
+                todoEmptyState(
+                    icon: "checkmark.circle",
+                    message: "未完了のTODOはありません"
+                )
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(Array(appState.todoItems.prefix(AppLayout.maxVisibleTodoItems).enumerated()), id: \.offset) { index, item in
+                                TodoRowView(
+                                    item: item,
+                                    isSelected: appState.selectedTodoIndex == index
+                                )
+                                .id(index)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    appState.selectedTodoIndex = index
+                                }
+                            }
+                        }
+                    }
+                    .onChange(of: appState.selectedTodoIndex) { _, newIndex in
+                        if newIndex >= 0 {
+                            proxy.scrollTo(newIndex, anchor: .center)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(minHeight: 60, maxHeight: 400)
+    }
+
+    private func todoEmptyState(icon: String, message: String) -> some View {
+        HStack {
+            Spacer()
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 24))
+                    .foregroundStyle(AppColors.textTertiary.opacity(0.5))
+                Text(message)
+                    .font(AppTypography.label)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+            .padding(.vertical, 20)
+            Spacer()
+        }
     }
 
     // MARK: - 履歴セクション
@@ -271,6 +381,14 @@ struct OverlayContentView: View {
                     insertion: .opacity.combined(with: .scale(scale: 0.9)),
                     removal: .opacity
                 ))
+            } else if appState.mode == .todo && appState.selectedTodoIndex >= 0 {
+                ShortcutHintView(key: "↩", action: "完了")
+                ShortcutHintView(key: "⌘E", action: "編集")
+                ShortcutHintView(key: "⌘⌫", action: "削除")
+                ShortcutHintView(key: "esc", action: "戻る")
+            } else if appState.mode == .todo {
+                ShortcutHintView(key: "⌘↩", action: "追加")
+                ShortcutHintView(key: "esc", action: "戻る")
             } else if appState.selectedHistoryIndex >= 0 {
                 ShortcutHintView(key: "↩", action: "入力欄に挿入")
                 ShortcutHintView(key: "⌘↩", action: "ペースト")

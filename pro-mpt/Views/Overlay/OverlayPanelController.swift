@@ -145,6 +145,14 @@ final class OverlayPanelController {
                 appState.exitSearchMode()
             } else if appState.mode == .favorite {
                 appState.exitFavoriteMode()
+            } else if appState.mode == .todo {
+                if appState.editingTodoId != nil {
+                    // 編集中ならキャンセルのみ
+                    appState.editingTodoId = nil
+                    appState.todoInputText = ""
+                } else {
+                    appState.exitTodoMode()
+                }
             } else {
                 appState.isOverlayVisible = false
             }
@@ -166,6 +174,14 @@ final class OverlayPanelController {
             }
             return nil
 
+        case 17 where hasCmd: // ⌘+T
+            if appState.mode == .todo {
+                appState.exitTodoMode()
+            } else {
+                appState.enterTodoMode()
+            }
+            return nil
+
         case 64: // F17 → コピーして閉じる
             if appState.selectedHistoryIndex >= 0 {
                 handleCopySelectedAndClose()
@@ -174,14 +190,37 @@ final class OverlayPanelController {
             }
             return nil
 
-        // Command+Enter: コピーして前のアプリにペースト
-        case 36 where hasCmd:
+        // Command+Enter (TODOモード、入力テキストあり): 追加 or 編集確定
+        case 36 where hasCmd && appState.mode == .todo && !appState.todoInputText.isEmpty:
+            handleTodoSubmit()
+            return nil
+
+        // Command+Enter: コピーして前のアプリにペースト (TODO以外)
+        case 36 where hasCmd && appState.mode != .todo:
             handleCopyPasteAndClose()
+            return nil
+
+        // Enter (TODO選択中): 完了にする
+        case 36 where appState.mode == .todo && appState.selectedTodoIndex >= 0:
+            handleCompleteTodo()
             return nil
 
         // Enter (アイテム選択中): 入力欄に挿入
         case 36 where appState.selectedHistoryIndex >= 0:
             handleInsertSelected()
+            return nil
+
+        // ⌘+E (TODO選択中): 編集モード開始
+        case 14 where hasCmd && appState.mode == .todo && appState.selectedTodoIndex >= 0:
+            handleStartEditTodo()
+            return nil
+
+        case 125 where appState.mode == .todo: // ↓ (TODOモード)
+            appState.selectNextTodo()
+            return nil
+
+        case 126 where appState.mode == .todo: // ↑ (TODOモード)
+            appState.selectPreviousTodo()
             return nil
 
         case 125 where appState.mode == .search || appState.mode == .favorite: // ↓ (リストモード)
@@ -198,6 +237,10 @@ final class OverlayPanelController {
 
         case 3 where hasCmd: // ⌘+F
             handleToggleFavorite()
+            return nil
+
+        case 51 where hasCmd && appState.mode == .todo: // ⌘+Delete (TODO)
+            handleDeleteTodo()
             return nil
 
         case 51 where hasCmd: // ⌘+Delete
@@ -289,6 +332,68 @@ final class OverlayPanelController {
         saveContext()
         appState.searchEngine.removeFromIndex(id: result.id)
         appState.selectedHistoryIndex = -1
+    }
+
+    // MARK: - TODOアクション
+
+    private func createTodoService() -> TodoService {
+        let path = UserDefaults.standard.string(forKey: "todoFilePath") ?? ""
+        return TodoService(filePath: path)
+    }
+
+    private func handleTodoSubmit() {
+        let text = appState.todoInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        let service = createTodoService()
+
+        if let editingId = appState.editingTodoId,
+           let item = appState.todoItems.first(where: { $0.id == editingId }) {
+            // 編集確定
+            try? service.updateTodo(item, newText: text)
+            appState.editingTodoId = nil
+        } else {
+            // 新規追加
+            try? service.addTodo(text: text)
+        }
+
+        appState.todoInputText = ""
+        appState.selectedTodoIndex = -1
+        appState.refreshTodos()
+    }
+
+    private func handleCompleteTodo() {
+        let index = appState.selectedTodoIndex
+        guard index >= 0, index < appState.todoItems.count else { return }
+        let item = appState.todoItems[index]
+
+        let service = createTodoService()
+        try? service.completeTodo(item)
+
+        appState.selectedTodoIndex = -1
+        appState.refreshTodos()
+    }
+
+    private func handleStartEditTodo() {
+        let index = appState.selectedTodoIndex
+        guard index >= 0, index < appState.todoItems.count else { return }
+        let item = appState.todoItems[index]
+
+        appState.editingTodoId = item.id
+        appState.todoInputText = item.text
+        appState.selectedTodoIndex = -1
+    }
+
+    private func handleDeleteTodo() {
+        let index = appState.selectedTodoIndex
+        guard index >= 0, index < appState.todoItems.count else { return }
+        let item = appState.todoItems[index]
+
+        let service = createTodoService()
+        try? service.deleteTodo(item)
+
+        appState.selectedTodoIndex = -1
+        appState.refreshTodos()
     }
 
     // MARK: - データ操作ヘルパー
