@@ -66,10 +66,8 @@ struct OverlayContentView: View {
     private var backgroundLayer: some View {
         ZStack {
             VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                .opacity(isListMode ? 1.0 : 0.45)
-            if isListMode {
-                AppColors.overlayBackground
-            }
+                .opacity(0.78)
+            Color(hex: 0x020203).opacity(0.45)
         }
     }
 
